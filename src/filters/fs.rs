@@ -134,6 +134,7 @@ impl AsRef<Path> for ArcPath {
 }
 
 impl ReplySealed for File {
+    type Body = Body;
     fn into_response(self) -> Response {
         self.resp
     }

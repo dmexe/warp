@@ -93,18 +93,23 @@ mod internal {
     use std::time::Instant;
 
     use futures::{Async, Future, Poll};
+    use http::Response;
 
     use ::filter::{FilterBase, Filter};
     use ::reject::Reject;
-    use ::reply::{Reply, ReplySealed, Response};
+    use ::reply::{Reply, ReplySealed, Body, Payload};
     use super::{Info, Log};
 
     #[allow(missing_debug_implementations)]
-    pub struct Logged(pub(super) Response);
+    pub struct Logged<B>(pub(super) Response<B>);
 
-    impl ReplySealed for Logged {
+    impl<B> ReplySealed for Logged<B>
+    where
+        B: Payload
+    {
+        type Body = B;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             self.0
         }
     }
@@ -116,14 +121,15 @@ mod internal {
         pub(super) log: Log<FN>,
     }
 
-    impl<FN, F> FilterBase for WithLog<FN, F>
+    impl<FN, F, B> FilterBase for WithLog<FN, F>
     where
         FN: Fn(Info) + Clone + Send,
         F: Filter + Clone + Send,
-        F::Extract: Reply,
+        F::Extract: Reply<Body = B>,
         F::Error: Reject,
+        B: Payload,
     {
-        type Extract = (Logged,);
+        type Extract = (Logged<B>,);
         type Error = F::Error;
         type Future = WithLogFuture<FN, F::Future>;
 
@@ -145,14 +151,15 @@ mod internal {
         started: Instant,
     }
 
-    impl<FN, F> Future for WithLogFuture<FN, F>
+    impl<FN, F, B> Future for WithLogFuture<FN, F>
     where
         FN: Fn(Info),
         F: Future,
-        F::Item: Reply,
+        F::Item: Reply<Body = B>,
         F::Error: Reject,
+        B: Payload,
     {
-        type Item = (Logged,);
+        type Item = (Logged<B>,);
         type Error = F::Error;
         fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
             let (result, status) = match self.future.poll() {

@@ -43,7 +43,11 @@ use ::reject::Reject;
 // This re-export just looks weird in docs...
 #[doc(hidden)]
 pub use ::filters::reply as with;
-pub(crate) use self::sealed::{Reply_, ReplySealed, Response};
+pub(crate) use self::sealed::{Reply_, ReplySealed};
+
+use http::Response as HttpResponse;
+pub(crate) use hyper::body::{Body, Payload};
+pub(crate) type Response = HttpResponse<Body>;
 
 /// Returns an empty `Reply` with status code `200 OK`.
 ///
@@ -108,6 +112,7 @@ struct Json {
 }
 
 impl ReplySealed for Json {
+    type Body = Body;
     #[inline]
     fn into_response(self) -> Response {
         match self.inner {
@@ -200,23 +205,24 @@ pub trait Reply: ReplySealed {
 impl<T: ReplySealed> Reply for T {}
 
 fn _assert_object_safe() {
-    fn _assert(_: &Reply) {}
+    fn _assert<B>(_: &Reply<Body = B>) {}
 }
 
 // Seal the `Reply` trait and the `Reply_` wrapper type for now.
 mod sealed {
     use hyper::Body;
+    use hyper::body::Payload;
+    use http::Response;
 
     use ::generic::{Either, One};
     use ::reject::Reject;
 
     use super::Reply;
 
-    pub type Response = ::http::Response<Body>;
-
     // A trait describing the various things that a Warp server can turn into a `Response`.
     pub trait ReplySealed: Send {
-        fn into_response(self) -> Response;
+        type Body: Payload;
+        fn into_response(self) -> Response<Self::Body>;
     }
 
     /// ```compile_fail
@@ -231,11 +237,15 @@ mod sealed {
 
     // An opaque type to return `impl Reply` from trait methods.
     #[allow(missing_debug_implementations)]
-    pub struct Reply_(pub(crate) Response);
+    pub struct Reply_<B>(pub(crate) Response<B>);
 
-    impl ReplySealed for Reply_ {
+    impl<B> ReplySealed for Reply_<B>
+    where
+        B: Payload
+    {
+        type Body = B;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             self.0
         }
     }
@@ -244,15 +254,18 @@ mod sealed {
     where
         Body: From<T>,
     {
+        type Body = Body;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             self.map(Body::from)
         }
     }
 
     impl ReplySealed for ::http::StatusCode {
+        type Body = Body;
+
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             let mut res = Response::default();
             *res.status_mut() = self;
             res
@@ -261,42 +274,46 @@ mod sealed {
 
     impl<T> ReplySealed for Result<T, ::http::Error>
     where
-        T: Reply + Send,
+        T: Reply<Body = Body> + Send,
     {
+        type Body = Body;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             match self {
                 Ok(t) => t.into_response(),
                 Err(e) => {
                     warn!("reply error: {:?}", e);
-                    ::reject::server_error()
-                        .into_response()
+                    ::reject::server_error().with(e).into_response()
                 }
             }
         }
     }
 
     impl ReplySealed for String {
+        type Body = Body;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             Response::new(Body::from(self))
         }
     }
 
     impl ReplySealed for &'static str {
+        type Body = Body;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             Response::new(Body::from(self))
         }
     }
 
-    impl<T, U> ReplySealed for Either<T, U>
+    impl<T, U, B> ReplySealed for Either<T, U>
     where
-        T: Reply,
-        U: Reply,
+        T: Reply<Body = B>,
+        U: Reply<Body = B>,
+        B: Payload,
     {
+        type Body = B;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             match self {
                 Either::A(a) => a.into_response(),
                 Either::B(b) => b.into_response(),
@@ -304,19 +321,22 @@ mod sealed {
         }
     }
 
-    impl<T> ReplySealed for One<T>
+    impl<T, B> ReplySealed for One<T>
     where
-        T: Reply,
+        T: Reply<Body = B>,
+        B: Payload,
     {
+        type Body = B;
         #[inline]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Self::Body> {
             self.0.into_response()
         }
     }
 
     impl ReplySealed for ::never::Never {
+        type Body = Body;
         #[inline(always)]
-        fn into_response(self) -> Response {
+        fn into_response(self) -> Response<Body> {
             match self {}
         }
     }

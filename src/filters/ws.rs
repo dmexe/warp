@@ -16,7 +16,7 @@ use tungstenite::protocol;
 use ::error::Kind;
 use ::filter::{Filter, FilterClone, One};
 use ::reject::{Rejection};
-use ::reply::{ReplySealed, Reply, Response};
+use ::reply::{ReplySealed, Reply, Response, Body};
 use super::{body, header};
 
 #[doc(hidden)]
@@ -129,6 +129,7 @@ pub struct Ws {
 
 #[allow(deprecated)]
 impl ReplySealed for Ws {
+    type Body = Body;
     fn into_response(self) -> Response {
         http::Response::builder()
             .status(101)
@@ -188,6 +189,7 @@ where
     F: FnOnce(WebSocket) -> U + Send + 'static,
     U: Future<Item=(), Error=()> + Send + 'static,
 {
+    type Body = Body;
     fn into_response(self) -> Response {
         let on_upgrade = self.on_upgrade;
         let fut = self.ws.body.on_upgrade()

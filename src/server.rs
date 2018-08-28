@@ -7,7 +7,7 @@ use hyper::service::{service_fn};
 
 use ::never::Never;
 use ::reject::Reject;
-use ::reply::{ReplySealed, Reply};
+use ::reply::{ReplySealed, Reply, Payload};
 use ::Request;
 
 /// Create a `Server` with the provided service.
@@ -99,13 +99,14 @@ struct ReplyFuture<F> {
     inner: F,
 }
 
-impl<F> Future for ReplyFuture<F>
+impl<F, B> Future for ReplyFuture<F>
 where
     F: Future,
-    F::Item: Reply,
+    F::Item: Reply<Body = B>,
     F::Error: Reject,
+    B: Payload
 {
-    type Item = ::reply::Response;
+    type Item = ::http::Response<B>;
     type Error = Never;
 
     #[inline]

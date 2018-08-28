@@ -162,7 +162,7 @@ mod sealed {
     }
 
     impl<R: Reply> Func<One<R>> for WithHeader_ {
-        type Output = Reply_;
+        type Output = Reply_<R::Body>;
 
         fn call(&self, args: One<R>) -> Self::Output {
             let mut resp = args.0.into_response();
@@ -179,7 +179,7 @@ mod sealed {
     }
 
     impl<R: Reply> Func<One<R>> for WithDefaultHeader_ {
-        type Output = Reply_;
+        type Output = Reply_<R::Body>;
 
         fn call(&self, args: One<R>) -> Self::Output {
             let mut resp = args.0.into_response();
