@@ -1,6 +1,8 @@
 use futures::{Async, Future, Poll};
+use frunk_core::hlist::{HList, HCons, HNil};
 
-use super::{Either, FilterBase, Filter, Tuple};
+use ::generic2::Either;
+use super::{FilterBase, Filter};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Unify<F> {
@@ -9,8 +11,8 @@ pub struct Unify<F> {
 
 impl<F, T> FilterBase for Unify<F>
 where
-    F: Filter<Extract = (Either<T, T>,)>,
-    T: Tuple,
+    F: Filter<Extract = HCons<Either<T, T>, HNil>>,
+    T: HList,
 {
     type Extract = T;
     type Error = F::Error;

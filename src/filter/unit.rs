@@ -1,4 +1,5 @@
 use futures::{Async, Future, Poll};
+use frunk_core::hlist::HNil;
 
 use super::{FilterBase, Filter};
 
@@ -9,9 +10,9 @@ pub struct Unit<T> {
 
 impl<T> FilterBase for Unit<T>
 where
-    T: Filter<Extract=((),)>,
+    T: Filter<Extract=HNil>,
 {
-    type Extract = ();
+    type Extract = HNil;
     type Error = T::Error;
     type Future = UnitFuture<T>;
     #[inline]
@@ -29,9 +30,9 @@ pub struct UnitFuture<T: Filter> {
 
 impl<T> Future for UnitFuture<T>
 where
-    T: Filter<Extract=((),)>,
+    T: Filter<Extract=HNil>,
 {
-    type Item = ();
+    type Item = HNil;
     type Error = T::Error;
 
     #[inline]

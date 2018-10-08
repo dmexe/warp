@@ -1,9 +1,11 @@
 use std::mem;
+use std::ops::Add;
 
 use futures::{Async, Future, Poll};
+use frunk_core::hlist::{HList};
 
 use ::reject::CombineRejection;
-use super::{Combine, FilterBase, Filter, HList, Tuple};
+use super::{FilterBase, Filter};
 
 #[derive(Clone, Copy, Debug)]
 pub struct And<T, U> {
@@ -11,16 +13,16 @@ pub struct And<T, U> {
     pub(super) second: U,
 }
 
-impl<T, U> FilterBase for And<T, U>
+impl<T, U, OUT> FilterBase for And<T, U>
 where
     T: Filter,
     U: Filter + Clone + Send,
     T::Extract: Send,
-    <T::Extract as Tuple>::HList: Combine<<U::Extract as Tuple>::HList> + Send,
-    <<<T::Extract as Tuple>::HList as Combine<<U::Extract as Tuple>::HList>>::Output as HList>::Tuple: Send,
+    T::Extract: Add<U::Extract, Output = OUT>,
     U::Error: CombineRejection<T::Error>,
+    OUT: HList
 {
-    type Extract = <<<T::Extract as Tuple>::HList as Combine<<U::Extract as Tuple>::HList>>::Output as HList>::Tuple;
+    type Extract = OUT;
     type Error = <U::Error as CombineRejection<T::Error>>::Rejection;
     type Future = AndFuture<T, U>;
 
@@ -42,16 +44,16 @@ enum State<T: Filter, U: Filter> {
     Done,
 }
 
-impl<T, U> Future for AndFuture<T, U>
+impl<T, U, OUT> Future for AndFuture<T, U>
 where
     T: Filter,
     U: Filter,
     //T::Extract: Combine<U::Extract>,
-    <T::Extract as Tuple>::HList: Combine<<U::Extract as Tuple>::HList> + Send,
+    T::Extract: Add<U::Extract, Output = OUT>,
     U::Error: CombineRejection<T::Error>,
+    OUT: HList + Send
 {
-    //type Item = <T::Extract as Combine<U::Extract>>::Output;
-    type Item = <<<T::Extract as Tuple>::HList as Combine<<U::Extract as Tuple>::HList>>::Output as HList>::Tuple;
+    type Item = OUT;
     type Error = <U::Error as CombineRejection<T::Error>>::Rejection;
 
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {

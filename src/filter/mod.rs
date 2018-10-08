@@ -11,9 +11,13 @@ mod unify;
 mod unit;
 mod wrap;
 
-use futures::{future, Future, IntoFuture};
+use std::ops::Add;
 
-pub(crate) use ::generic::{Combine, Either, Func, HList, One, one, Tuple};
+use futures::{future, Future, IntoFuture};
+use frunk_core::hlist::{HList, HCons, HNil};
+
+// pub(crate) use ::generic::{Combine, Either, Func, HList, One, one, Tuple};
+use ::generic2::{Either, Func};
 use ::reject::{CombineRejection, Reject, Rejection};
 use ::route::{self, Route};
 
@@ -32,7 +36,7 @@ pub(crate) use self::wrap::{WrapSealed, Wrap};
 // A crate-private base trait, allowing the actual `filter` method to change
 // signatures without it being a breaking change.
 pub trait FilterBase {
-    type Extract: Tuple; // + Send;
+    type Extract: HList; // + Send;
     type Error: Reject;
     type Future: Future<Item=Self::Extract, Error=Self::Error> + Send;
 
@@ -121,8 +125,7 @@ pub trait Filter: FilterBase {
     fn and<F>(self, other: F) -> And<Self, F>
     where
         Self: Sized,
-        //Self::Extract: HList + Combine<F::Extract>,
-        <Self::Extract as Tuple>::HList: Combine<<F::Extract as Tuple>::HList>,
+        Self::Extract: Add<F::Extract>,
         F: Filter + Clone,
         F::Error: CombineRejection<Self::Error>,
     {
@@ -305,8 +308,8 @@ pub trait Filter: FilterBase {
     /// ```
     fn unify<T>(self) -> Unify<Self>
     where
-        Self: Filter<Extract=(Either<T, T>,)> + Sized,
-        T: Tuple,
+        Self: Filter<Extract=(HCons<Either<T, T>, HNil>)> + Sized,
+        T: HList,
     {
         Unify {
             filter: self,
@@ -391,7 +394,7 @@ pub(crate) fn filter_fn<F, U>(func: F) -> FilterFn<F>
 where
     F: Fn(&mut Route) -> U,
     U: IntoFuture,
-    U::Item: Tuple,
+    U::Item: HList,
     U::Error: Reject,
 {
     FilterFn {
@@ -429,7 +432,7 @@ where
     F: Fn(&mut Route) -> U,
     U: IntoFuture,
     U::Future: Send,
-    U::Item: Tuple,
+    U::Item: HList,
     U::Error: Reject,
 {
     type Extract = U::Item;

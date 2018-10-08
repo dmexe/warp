@@ -31,6 +31,7 @@ tokio-threadpool = "0.1.7"
 # tls is enabled by default, we don't want that yet
 tungstenite = { default-features = false, version = "0.6" }
 urlencoding = "1.0.0"
+frunk_core = "0.2.1"
 
 
 [dev-dependencies]

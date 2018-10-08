@@ -2,9 +2,10 @@ use std::fmt;
 use std::sync::Arc;
 
 use futures::Future;
+use frunk_core::hlist::HList;
 
 use ::reject::{Rejection};
-use super::{FilterBase, Filter, Tuple};
+use super::{FilterBase, Filter};
 
 /// A type representing a boxed `Filter` trait object.
 ///
@@ -25,7 +26,7 @@ use super::{FilterBase, Filter, Tuple};
 /// }
 /// ```
 ///
-pub struct BoxedFilter<T: Tuple> {
+pub struct BoxedFilter<T: HList> {
     filter: Arc<Filter<
         Extract = T,
         Error = Rejection,
@@ -33,7 +34,7 @@ pub struct BoxedFilter<T: Tuple> {
     > + Send + Sync>,
 }
 
-impl<T: Tuple + Send> BoxedFilter<T> {
+impl<T: HList + Send> BoxedFilter<T> {
     pub(super) fn new<F>(filter: F) -> BoxedFilter<T>
     where
         F: Filter<
@@ -49,7 +50,7 @@ impl<T: Tuple + Send> BoxedFilter<T> {
     }
 }
 
-impl<T: Tuple> Clone for BoxedFilter<T> {
+impl<T: HList> Clone for BoxedFilter<T> {
     fn clone(&self) -> BoxedFilter<T> {
         BoxedFilter {
             filter: self.filter.clone(),
@@ -57,7 +58,7 @@ impl<T: Tuple> Clone for BoxedFilter<T> {
     }
 }
 
-impl<T: Tuple> fmt::Debug for BoxedFilter<T> {
+impl<T: HList> fmt::Debug for BoxedFilter<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("BoxedFilter")
             .finish()
@@ -69,7 +70,7 @@ fn _assert_send() {
     _assert::<BoxedFilter<()>>();
 }
 
-impl<T: Tuple + Send> FilterBase for BoxedFilter<T> {
+impl<T: HList + Send> FilterBase for BoxedFilter<T> {
     type Extract = T;
     type Error = Rejection;
     type Future = Box<Future<Item=T, Error=Rejection> + Send>;
