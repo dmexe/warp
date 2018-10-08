@@ -20,7 +20,7 @@ where
     T::Extract: Send,
     T::Extract: Add<U::Extract, Output = OUT>,
     U::Error: CombineRejection<T::Error>,
-    OUT: HList
+    OUT: HList + Send
 {
     type Extract = OUT;
     type Error = <U::Error as CombineRejection<T::Error>>::Rejection;

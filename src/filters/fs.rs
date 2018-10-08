@@ -19,9 +19,10 @@ use tokio_threadpool;
 use urlencoding::decode;
 
 use ::never::Never;
-use ::filter::{Filter, FilterClone, One};
+use ::filter::{Filter, FilterClone};
 use ::reject::{self, Rejection};
 use ::reply::{ReplySealed, Response};
+use ::generic2::One;
 
 /// Creates a `Filter` that serves a File at the `path`.
 ///

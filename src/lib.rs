@@ -101,7 +101,7 @@ extern crate tokio_io;
 extern crate tokio_threadpool;
 extern crate tungstenite;
 extern crate urlencoding;
-extern crate frunk_core;
+#[macro_use] extern crate frunk_core;
 
 mod error;
 mod filter;

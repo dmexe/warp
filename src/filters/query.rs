@@ -3,8 +3,9 @@
 use serde::de::DeserializeOwned;
 use serde_urlencoded;
 
-use ::filter::{Filter, filter_fn_one, One};
+use ::filter::{Filter, filter_fn_one};
 use ::reject::{self, Rejection};
+use ::generic2::One;
 
 /// Creates a `Filter` that decodes query parameters to the type `T`.
 ///

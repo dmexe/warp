@@ -7,10 +7,12 @@
 //! There is also [`warp::method()`](method), which never rejects
 //! a request, and just extracts the method to be used in your filter chains.
 use http::Method;
+use frunk_core::hlist::HNil;
 
-use ::filter::{And, Filter, filter_fn, filter_fn_one, One};
+use ::filter::{And, Filter, filter_fn, filter_fn_one};
 use ::never::Never;
 use ::reject::{CombineRejection, Rejection};
+use ::generic2::One;
 
 pub use self::v2::{
     get as get2,
@@ -25,7 +27,7 @@ pub use self::v2::{
 #[doc(hidden)]
 #[deprecated(note="warp::get2() is meant to replace get()")]
 pub fn get<F>(filter: F) -> And<
-    impl Filter<Extract=(), Error=Rejection> + Copy,
+    impl Filter<Extract=HNil, Error=Rejection> + Copy,
     F,
 >
 where

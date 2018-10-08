@@ -3,8 +3,9 @@
 use headers::Cookie;
 
 use ::never::Never;
-use ::filter::{Filter, One, filter_fn_one};
+use ::filter::{Filter, filter_fn_one};
 use ::reject::Rejection;
+use ::generic2::One;
 use super::header;
 
 /// Creates a `Filter` that requires a cookie by name.

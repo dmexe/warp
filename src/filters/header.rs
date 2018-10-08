@@ -10,8 +10,9 @@ use headers::{Header, HeaderMapExt};
 use http::HeaderMap;
 
 use ::never::Never;
-use ::filter::{Filter, filter_fn, filter_fn_one, One};
+use ::filter::{Filter, filter_fn, filter_fn_one};
 use ::reject::{self, Rejection};
+use ::generic2::One;
 
 /// Create a `Filter` that tries to parse the specified header.
 ///

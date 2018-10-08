@@ -130,11 +130,13 @@ use std::fmt;
 use std::str::FromStr;
 
 use http::uri::PathAndQuery;
+use frunk_core::hlist::{HNil, HList};
 
-use ::filter::{Filter, filter_fn, Tuple, One, one};
+use ::filter::{Filter, filter_fn};
 use ::never::Never;
 use ::reject::{self, Rejection};
 use ::route::Route;
+use ::generic2::{One, one};
 
 
 /// Create an exact match path segment `Filter`.
@@ -154,14 +156,14 @@ use ::route::Route;
 /// let hello = warp::path("hello")
 ///     .map(|| "Hello, World!");
 /// ```
-pub fn path(p: &'static str) -> impl Filter<Extract=(), Error=Rejection> + Copy {
+pub fn path(p: &'static str) -> impl Filter<Extract=HNil, Error=Rejection> + Copy {
     assert!(!p.is_empty(), "exact path segments should not be empty");
     assert!(!p.contains('/'), "exact path segments should not contain a slash: {:?}", p);
 
     segment(move |seg| {
         trace!("{:?}?: {:?}", p, seg);
         if seg == p {
-            Ok(())
+            Ok(HNil);
         } else {
             Err(reject::not_found())
         }
@@ -169,10 +171,10 @@ pub fn path(p: &'static str) -> impl Filter<Extract=(), Error=Rejection> + Copy 
 }
 
 /// Matches the end of a route.
-pub fn index() -> impl Filter<Extract=(), Error=Rejection> + Copy {
+pub fn index() -> impl Filter<Extract=HNil, Error=Rejection> + Copy {
     filter_fn(move |route| {
         if route.path().is_empty() {
-            Ok(())
+            Ok(HNil)
         } else {
             Err(reject::not_found())
         }
@@ -411,7 +413,7 @@ impl fmt::Debug for FullPath {
 fn segment<F, U>(func: F) -> impl Filter<Extract=U, Error=Rejection> + Copy
 where
     F: Fn(&str) -> Result<U, Rejection> + Copy,
-    U: Tuple + Send,
+    U: HList + Send,
 {
     filter_fn(move |route| {
         let (u, idx) = {

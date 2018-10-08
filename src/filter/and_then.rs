@@ -1,9 +1,11 @@
 use std::mem;
+use std::ops::Add;
 
 use futures::{Async, Future, IntoFuture, Poll};
 
 use ::reject::CombineRejection;
-use super::{FilterBase, Filter, Func};
+use ::generic2::Func;
+use super::{FilterBase, Filter};
 
 #[derive(Clone, Copy, Debug)]
 pub struct AndThen<T, F> {

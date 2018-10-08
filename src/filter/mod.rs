@@ -17,7 +17,7 @@ use futures::{future, Future, IntoFuture};
 use frunk_core::hlist::{HList, HCons, HNil};
 
 // pub(crate) use ::generic::{Combine, Either, Func, HList, One, one, Tuple};
-use ::generic2::{Either, Func};
+use ::generic2::{Either, Func, one, One};
 use ::reject::{CombineRejection, Reject, Rejection};
 use ::route::{self, Route};
 
@@ -403,7 +403,13 @@ where
 }
 
 pub(crate) fn filter_fn_one<F, U>(func: F)
-    -> FilterFn<impl Fn(&mut Route) -> future::Map<U::Future, fn(U::Item) -> (U::Item,)> + Copy>
+    -> FilterFn<
+        impl Fn(&mut Route) ->
+            future::Map<
+                U::Future,
+                fn(U::Item) -> One<U::Item>
+            > + Copy
+        >
 where
     F: Fn(&mut Route) -> U + Copy,
     U: IntoFuture,
@@ -412,12 +418,8 @@ where
     filter_fn(move |route| {
         func(route)
             .into_future()
-            .map(tup_one as _)
+            .map(one)
     })
-}
-
-fn tup_one<T>(item: T) -> (T,) {
-    (item,)
 }
 
 #[derive(Copy, Clone)]

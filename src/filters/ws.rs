@@ -11,9 +11,10 @@ use http;
 use tungstenite::protocol;
 
 use ::error::Kind;
-use ::filter::{Filter, FilterBase, FilterClone, One};
+use ::filter::{Filter, FilterBase, FilterClone};
 use ::reject::{Rejection};
 use ::reply::{ReplySealed, Reply, Response};
+use ::generic2::One;
 use super::{body, header};
 
 #[doc(hidden)]
