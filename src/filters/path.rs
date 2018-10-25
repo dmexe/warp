@@ -215,7 +215,7 @@ pub fn end() -> impl Filter<Extract=(), Error=Rejection> + Copy {
 /// ```
 pub fn param<T: FromStr + Send>() -> impl Filter<Extract=One<T>, Error=Rejection> + Copy {
     segment(|seg| {
-        trace!("param?: {:?}", seg);
+        warn!("param?: {:?}", seg);
         if seg.is_empty() {
             return Err(reject::not_found());
         }
@@ -508,3 +508,83 @@ macro_rules! path {
     );
 }
 
+#[cfg(all(test, feature="nightly"))]
+mod benches {
+    use lib_test::Bencher;
+    use ::Filter;
+    use ::filter::FilterBase;
+    use ::http::Request;
+    use ::hyper::Body;
+    use ::futures::Future;
+
+    #[bench]
+    fn param(b: &mut Bencher) {
+        let route = ::route::Route::new(get("/1"));
+
+        b.iter(|| {
+            ::route::set(&route, || {
+                ::route::with(|r| r.reset_matched_path_index(1));
+                let left = ::path::param2::<u8>().and(::path::end()).map(call_u8);
+
+                match left.filter().poll() {
+                    Err(err) => unreachable!("{:?}", err),
+                    Ok(_) => (),
+                }
+            });
+        })
+    }
+
+    #[bench]
+    fn param_err(b: &mut Bencher) {
+        let route = ::route::Route::new(get("/-1"));
+        let left = ::path::param::<u8>().map(call_u8);
+        let right = ::path::param::<u64>().map(call_u64);
+        let both = left.or(right);
+
+        b.iter(|| {
+            ::route::set(&route, || {
+                ::route::with(|r| r.reset_matched_path_index(1));
+                match both.filter().poll() {
+                    Err(ref err) if err.status().as_u16() == 404 => (),
+                    Err(err) => unreachable!("{:?}", err),
+                    Ok(_) => unreachable!(),
+                }
+            });
+        });
+    }
+
+    #[bench]
+    fn param2_err(b: &mut Bencher) {
+        let route = ::route::Route::new(get("/-1"));
+        let left = ::path::param2::<u8>().map(call_u8);
+        let right = ::path::param2::<u64>().map(call_u64);
+        let both = left.or(right);
+
+        b.iter(|| {
+            ::route::set(&route, || {
+                ::route::with(|r| r.reset_matched_path_index(1));
+                match both.filter().poll() {
+                    Err(ref err) if err.status().as_u16() == 404 => (),
+                    Err(err) => unreachable!("{:?}", err),
+                    Ok(_) => unreachable!(),
+                }
+            });
+        });
+    }
+
+    fn call_u64(_u: u64) -> impl ::reply::Reply {
+        ::reply()
+    }
+
+    fn call_u8(_u: u8) -> impl ::reply::Reply {
+        ::reply()
+    }
+
+    fn get<S: Into<String>>(uri: S) -> ::Request {
+        Request::builder()
+                .uri(uri.into())
+                .body(Body::empty())
+                .unwrap()
+    }
+
+}

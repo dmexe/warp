@@ -2,6 +2,7 @@
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![cfg_attr(test, deny(warnings))]
+#![cfg_attr(all(test, feature = "nightly"), feature(test))]
 
 //! # warp
 //!
@@ -100,6 +101,9 @@ extern crate tokio_io;
 extern crate tokio_threadpool;
 extern crate tungstenite;
 extern crate urlencoding;
+
+#[cfg(all(test, feature="nightly"))]
+extern crate test as lib_test;
 
 mod error;
 mod filter;
